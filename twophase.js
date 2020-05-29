@@ -1073,9 +1073,3 @@ return {
 }
 
 }
-
-const tp = TWOPHASE.twophase();
-tp.initialize()
-
-tp.solve("D2 R U2 B' D' F U2 L' U R2 B D2 F B2 D2 L2 B'") // solution: 
-tp.getScramble(347)
