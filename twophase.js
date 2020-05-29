@@ -23,9 +23,9 @@ numbering
              +------------+             
 */
 
-let twophase = {};
+let TWOPHASE = {};
 
-twophase.solver = () => {
+TWOPHASE.twophase = () => {
 
 const U = 0;
 const F = 1;
@@ -755,6 +755,77 @@ const getRandomState = (seed) => {
   return obj;
 }
 
+const cancelMoves = (moves) => {
+  let l = moves.length;
+  let faceList = Array(l);
+  let axisList = Array(l);
+  let suffixList = Array(l);
+  for (let i = 0; i < l; i++) {
+    faceList[i] = moves[i] / 3 | 0;
+    axisList[i] = faceList[i] % 3;
+    suffixList[i] = moves[i] % 3
+  }
+  let newFaceList;
+  let newAxisList;
+  let newSuffixList;
+
+  let cancelled;
+
+  do {
+    cancelled = 0;
+    l = faceList.length;
+
+    for (let i = 0; i < l - 1; i++) {
+      if (axisList[i] === axisList[i + 1] && faceList[i] > faceList[i + 1]) {
+        swapElement(faceList, i);
+        swapElement(axisList, i);
+        swapElement(suffixList, i);
+      }
+    }
+
+    for (let i = 0; i < l - 1; i++) {
+      if (faceList[i] === faceList[i + 1]) {
+        cancelled++;
+        suffixList[i] = (suffixList[i] + suffixList[i + 1] + 1) % 4;
+        suffixList[i + 1] = 3;
+      }
+    }
+
+    newFaceList = [];
+    newAxisList = [];
+    newSuffixList = [];
+
+    for (let i = 0; i < l; i++) {
+      if (suffixList[i] !== 3) {
+        newFaceList.push(faceList[i]);
+        newAxisList.push(axisList[i]);
+        newSuffixList.push(suffixList[i]);
+      }
+    }
+
+    faceList = newFaceList.slice();
+    axisList = newAxisList.slice();
+    suffixList = newSuffixList.slice();
+  } while (cancelled > 0)
+
+  // let ret = '';
+  // for (let i = 0; i < faceList.length; i++) {
+  //   ret += moveName[faceList[i] * 3 + suffixList[i]];
+  // }
+
+  // return ret;
+  let ret = Array(faceList.length);
+  for (let i = 0; i < faceList.length; i++) {
+    ret[i] = faceList[i] * 3 + suffixList[i];
+  }
+
+  return ret;
+}
+
+const swapElement = (arr, idx) => {
+  arr.splice(idx, 2, arr[idx + 1], arr[idx]);
+}
+
 const initUtil = () => {
   Cnk = create2DArray(12, 12);
   for (let i = 0; i < 12; i++) {
@@ -971,6 +1042,7 @@ const solve = (scramble) => {
   }
 
   _solution = search(obj);
+  _solution = cancelMoves(_solution);
   _solution.forEach((val) => {
     solution += moveName[val] + ' '
   })
@@ -984,6 +1056,7 @@ const getScramble = (seed) => {
   scramble = '';
   scr = getRandomState(seed);
   solution = search(scr);
+  solution = cancelMoves(solution);
   solution.reverse();
   ret = '';
   solution.forEach((val) => {
@@ -1000,3 +1073,9 @@ return {
 }
 
 }
+
+const tp = TWOPHASE.twophase();
+tp.initialize()
+
+tp.solve("D2 R U2 B' D' F U2 L' U R2 B D2 F B2 D2 L2 B'") // solution: 
+tp.getScramble(347)
