@@ -25,7 +25,7 @@ numbering
 
 let TWOPHASE = {};
 
-TWOPHASE.twophase = () => {
+TWOPHASE.twophase = (() => {
 
 const U = 0;
 const F = 1;
@@ -1072,4 +1072,4 @@ return {
   getScramble: getScramble
 }
 
-}
+})();
