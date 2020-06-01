@@ -23,6 +23,8 @@ numbering
              +------------+             
 */
 
+const fs = require('fs');
+
 let TWOPHASE = {};
 
 TWOPHASE.twophase = (() => {
@@ -44,14 +46,20 @@ let eSliceTable;
 
 let cPTable;
 let eSliceTable2;
+let UDEPTable;
 let mSliceTable;
 let sSliceTable;
 
+let twistESlicePrun;
+let flipESlicePrun;
+let cPESlicePrun;
+let UDEPESlicePrun;
 let twistPrun;
 let flipPrun;
 let eSlicePrun;
 
 let cPPrun;
+let UDEPPrun;
 let mSlicePrun;
 let sSlicePrun;
 
@@ -100,25 +108,29 @@ const getESlice = (obj) => {
 
 const getESlice2 = (obj) => {
   let ret = 0
-  let s = 4;
-  let perm = [];
-  for (let i = 0; i < 12; i++) {
-    if (obj.ep[i] > 7) {
-      ret += Cnk[11 - i][s--];
-      perm.push(obj.ep[i] - 8);
-    }
-  }
-
   let flag = 15;
-  let _ret = 0;
   let tmp;
+  let cur;
   for (let i = 0; i < 4; i++) {
-    tmp = 15 >> 4 - perm[i];
-    _ret += fact(3 - i) * bitCount(flag & tmp);
-    flag ^= 1 << perm[i];
-  }
+    cur = obj.ep[i + 8] - 8;
 
-  return ret * 24 + _ret;
+    tmp = 15 >> 4 - cur;
+    ret += fact(3 - i) * bitCount(flag & tmp);
+    flag ^= 1 << cur;
+  }
+  return ret;
+}
+
+const getUDEP = (obj) => {
+  let flag = 255;
+  let ret = 0;
+  let tmp;
+  for (let i = 0; i < 8; i++) {
+    tmp = 255 >> 8 - obj.ep[i];
+    ret += fact(7 - i) * bitCount(flag & tmp);
+    flag ^= 1 << obj.ep[i];
+  }
+  return ret;
 }
 
 const getMSlice = (obj) => {
@@ -220,26 +232,22 @@ const setESlice = (obj, idx) => {
 }
 
 const setESlice2 = (obj, idx) => {
-  let _idx = idx % 24;
-
   let arr = [8, 9, 10, 11];
-  let perm = [];
   let tmp;
   for (let i = 0; i < 4; i++) {
-    tmp = 1 << _idx / fact(3 - i) | 0;
-    perm.push(arr.splice(bitCount(tmp - 1), 1)[0]);
-    _idx = _idx % fact(3 - i);
+    tmp = 1 << idx / fact(3 - i) | 0;
+    obj.ep[i + 8] = arr.splice(bitCount(tmp - 1), 1)[0];
+    idx = idx % fact(3 - i);
   }
+}
 
-  idx = idx / 24 | 0;
-  let s = 4;
-  for (let i = 0; i < 12; i++) {
-    if (idx >= Cnk[11 - i][s]) {
-      obj.ep[i] = perm[4 - s];
-      idx -= Cnk[11 - i][s--];
-    } else {
-      obj.ep[i] = i - 4 + s;
-    }
+const setUDEP = (obj, idx) => {
+  let arr = [0, 1, 2, 3, 4, 5, 6, 7];
+  let tmp;
+  for (let i = 0; i < 8; i++) {
+    tmp = 1 << idx / fact(7 - i) | 0;
+    obj.ep[i] = arr.splice(bitCount(tmp - 1), 1)[0];
+    idx = idx % fact(7 - i);
   }
 }
 
@@ -321,8 +329,9 @@ const initTable = () => {
   initESliceTable();
   initCPTable();
   initESliceTable2();
-  initMSliceTable();
-  initSSliceTable();
+  initUDEPTable();
+  // initMSliceTable();
+  // initSSliceTable();
 }
 
 const initTwistTable = () => {
@@ -385,17 +394,47 @@ const initCPTable = () => {
   }
 }
 
+// const initESliceTable2 = () => {
+//   eSliceTable2 = create2DArray(11880, 18);
+//   let obj_0 = {};
+//   let obj_1 = {};
+//   $init(obj_0);
+//   $init(obj_1);
+//   for (let i = 0; i < 11880; i++) {
+//     setESlice2(obj_0, i);
+//     for (let j = 0; j < 18; j++) {
+//       $multiply(obj_0, moveObject[j], obj_1);
+//       eSliceTable2[i][j] = getESlice2(obj_1);
+//     }
+//   }
+// }
+
 const initESliceTable2 = () => {
-  eSliceTable2 = create2DArray(11880, 18);
+  eSliceTable2 = create2DArray(24, 18);
   let obj_0 = {};
   let obj_1 = {};
   $init(obj_0);
   $init(obj_1);
-  for (let i = 0; i < 11880; i++) {
+  for (let i = 0; i < 24; i++) {
     setESlice2(obj_0, i);
     for (let j = 0; j < 18; j++) {
       $multiply(obj_0, moveObject[j], obj_1);
       eSliceTable2[i][j] = getESlice2(obj_1);
+    }
+  }
+}
+
+const initUDEPTable = () => {
+  UDEPTable = create2DArray(40320, 18);
+  let obj_0 = {};
+  let obj_1 = {};
+  $init(obj_0);
+  $init(obj_1);
+  for (let i = 0; i < 40320; i++) {
+    setUDEP(obj_0, i);
+    for (let j = 0; j < 18; j++) {
+      $multiply(obj_0, moveObject[j], obj_1);
+      UDEPTable[i][j] = getUDEP(obj_1);
     }
   }
 }
@@ -431,12 +470,142 @@ const initSSliceTable = () => {
 }
 
 const initPrun = () => {
-  initTwistPrun();
-  initFlipPrun();
-  initESlicePrun();
-  initCPPrun();
-  initMSlicePrun();
-  initSSlicePrun();
+  let prun = fs.readFileSync('prun.json');
+  prun = JSON.parse(prun);
+  twistESlicePrun = prun.twistESlicePrun;
+  flipESlicePrun = prun.flipESlicePrun;
+  cPESlicePrun = prun.cPESlicePrun;
+  UDEPESlicePrun = prun.UDEPESlicePrun;
+  // initTwistESlicePrun();
+  // initFlipESlicePrun();
+  // initCPESlicePrun();
+  // initUDEPESlicePrun();
+  // initTwistPrun();
+  // initFlipPrun();
+  // initESlicePrun();
+  // initCPPrun();
+  // initUDEPPrun();
+  // initMSlicePrun();
+  // initSSlicePrun();
+}
+
+
+const initTwistESlicePrun = () => {
+  twistESlicePrun = Array(1082565);
+
+  let visited = Array(1082565);
+  visited.fill(0);
+  let cur;
+  let queue = new Queue();
+  let children1;
+  let children2;
+  let done = 0;
+
+  queue.push([0, 0, 0]);
+  visited[0] = 1;
+  while (done < 1082565) {
+    if (done % 10000 === 0) {console.log(done)};
+    cur = queue.pop();
+    twistESlicePrun[cur[0] * 495 + cur[1]] = cur[2];
+    done++;
+    children1 = twistTable[cur[0]]
+    children2 = eSliceTable2[cur[1]];
+    for (let i = 0; i < 18; i++) {
+      if (visited[children1[i] * 495 + children2[i]] === 0) {
+        visited[children1[i] * 495 + children2[i]] = 1;
+        queue.push([children1[i], children2[i], cur[2] + 1]);
+      }
+    }
+  }
+}
+
+const initFlipESlicePrun = () => {
+  flipESlicePrun = Array(1013760);
+
+  let visited = Array(1013760);
+  visited.fill(0);
+  let cur;
+  let queue = new Queue();
+  let children1;
+  let children2;
+  let done = 0;
+
+  queue.push([0, 0, 0]);
+  visited[0] = 1;
+  while (done < 1013760) {
+    if (done % 10000 === 0) {console.log(done)};
+    cur = queue.pop();
+    flipESlicePrun[cur[0] * 495 + cur[1]] = cur[2];
+    done++;
+    children1 = flipTable[cur[0]]
+    children2 = eSliceTable[cur[1]];
+    for (let i = 0; i < 18; i++) {
+      if (visited[children1[i] * 495 + children2[i]] === 0) {
+        visited[children1[i] * 495 + children2[i]] = 1;
+        queue.push([children1[i], children2[i], cur[2] + 1]);
+      }
+    }
+  }
+}
+
+const initCPESlicePrun = () => {
+  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
+  cPESlicePrun = Array(967680);
+
+  let visited = Array(967680);
+  visited.fill(0);
+  let cur;
+  let queue = new Queue();
+  let children1;
+  let children2;
+  let done = 0;
+
+  queue.push([0, 0, 0]);
+  visited[0] = 1;
+  while (done < 967680) {
+    if (done % 10000 === 0) {console.log(done)};
+    cur = queue.pop();
+    cPESlicePrun[cur[0] * 24 + cur[1]] = cur[2];
+    done++;
+    children1 = cPTable[cur[0]]
+    children2 = eSliceTable2[cur[1]];
+    for (let i = 0; i < 10; i++) {
+      if (visited[children1[arr[i]] * 24 + children2[arr[i]]] === 0) {
+        visited[children1[arr[i]] * 24 + children2[arr[i]]] = 1;
+        queue.push([children1[arr[i]], children2[arr[i]], cur[2] + 1]);
+      }
+    }
+  }
+}
+
+const initUDEPESlicePrun = () => {
+  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
+  UDEPESlicePrun = Array(967680);
+
+  let visited = Array(967680);
+  visited.fill(0);
+  let cur;
+  let queue = new Queue();
+  let children1;
+  let children2;
+  let done = 0;
+
+  queue.push([0, 0, 0]);
+  visited[0] = 1;
+  while (done < 967680) {
+    if (done % 10000 === 0) {console.log(done)};
+    cur = queue.pop();
+    UDEPESlicePrun[cur[0] * 24 + cur[1]] = cur[2];
+    done++;
+    children1 = UDEPTable[cur[0]]
+    children2 = eSliceTable2[cur[1]];
+    for (let i = 0; i < 10; i++) {
+      if (visited[children1[arr[i]] * 24 + children2[arr[i]]] === 0) {
+        visited[children1[arr[i]] * 24 + children2[arr[i]]] = 1;
+        queue.push([children1[arr[i]], children2[arr[i]], cur[2] + 1]);
+      }
+    }
+  }
 }
 
 const initTwistPrun = () => {
@@ -544,6 +713,33 @@ const initCPPrun = () => {
   }
 }
 
+const initUDEPPrun = () => {
+  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
+  UDEPPrun = Array(40320);
+
+  let visited = Array(40320);
+  visited.fill(0);
+  let cur;
+  let queue = new Queue();
+  let children;
+  let done = 0;
+
+  queue.push([0, 0]);
+  visited[0] = 1;
+  while (done < 40320) {
+    cur = queue.pop();
+    UDEPPrun[cur[0]] = cur[1];
+    done++;
+    children = UDEPTable[cur[0]];
+    for (let i = 0; i < 10; i++) {
+      if (visited[children[arr[i]]] === 0) {
+        visited[children[arr[i]]] = 1;
+        queue.push([children[arr[i]], cur[1] + 1]);
+      }
+    }
+  }
+}
+
 const initMSlicePrun = () => {
   let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
   mSlicePrun = Array(11880);
@@ -629,7 +825,7 @@ const searchPhase1 = (root, depth) => {
   let endTime;
   startTime = Date.now();
 
-  let stack = new Stack(); // obj = [twist, flip, eslice, mv]
+  let stack = new Stack(); // obj = [Twist, Flip, ESlice, mv]
   stack.push([
     getTwist(root),
     getFlip(root),
@@ -649,7 +845,8 @@ const searchPhase1 = (root, depth) => {
       return cur[3];
     }
 
-    if (cur[3].length + Math.max(twistPrun[cur[0]], flipPrun[cur[1]], eSlicePrun[cur[2]]) > depth) {
+    // if (cur[3].length + Math.max(twistPrun[cur[0]], flipPrun[cur[1]], eSlicePrun[cur[2]]) > depth) {
+    if (cur[3].length + Math.max(twistESlicePrun[cur[0] * 495 + cur[2]], flipESlicePrun[cur[1] * 495 + cur[2]]) > depth) {
       continue;
     }
 
@@ -685,27 +882,28 @@ const searchPhase2 = (root, depth) => {
   let endTime;
   startTime = Date.now();
 
-  let stack = new Stack(); // obj = [cp, eslice, mslice, sslice, mv]
+  let stack = new Stack(); // obj = [CP, UDEP ESlice, mv]
   stack.push([
     getCP(root),
+    getUDEP(root),
     getESlice2(root),
-    getMSlice(root),
-    getSSlice(root),
     []
   ]);
   let cur;
   while(stack.size() > 0) {
     evaluated++; // evaluate
     cur = stack.pop();
-    if(cur[0] === 0 && cur[1] === 0 && cur[2] === 11856 && cur[3] === 1656) {
+    if(cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
       endTime = Date.now();
       console.log(
         'depth=' + depth + ' [expanded: ' + expanded + ', evaluated: ' + evaluated + ', ' + (endTime - startTime) + ' ms]'
       );
-      return cur[4];
+      return cur[3];
     }
 
-    if (cur[4].length + Math.max(cPPrun[cur[0]], mSlicePrun[cur[2]], sSlicePrun[cur[3]]) > depth) {
+    // if (cur[4].length + Math.max(cPPrun[cur[0]], mSlicePrun[cur[2]], sSlicePrun[cur[3]]) > depth) {
+    // if (cur[3].length + Math.max(cPPrun[cur[0]], UDEPPrun[cur[2]]) > depth) {
+    if (cur[3].length + Math.max(cPESlicePrun[cur[0] * 24 + cur[2]], UDEPESlicePrun[cur[1] * 24 + cur[2]]) > depth) {
       continue;
     }
 
@@ -714,15 +912,14 @@ const searchPhase2 = (root, depth) => {
     for (let i = 0; i < 10; i++) {
       let _i = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16][i];
       let face = _i / 3 | 0;
-      let curFace = cur[4].length === 0 ? -1 : cur[4][cur[4].length - 1] / 3 | 0;
+      let curFace = cur[3].length === 0 ? -1 : cur[3][cur[3].length - 1] / 3 | 0;
       if (face !== curFace || face > curFace) {
-        let mv = cur[4].slice();
+        let mv = cur[3].slice();
         mv.push(_i);
         stack.push([
           cPTable[cur[0]][_i],
-          eSliceTable2[cur[1]][_i],
-          mSliceTable[cur[2]][_i],
-          sSliceTable[cur[3]][_i],
+          UDEPTable[cur[1]][_i],
+          eSliceTable2[cur[2]][_i],
           mv
         ]);
       }
@@ -1073,3 +1270,21 @@ return {
 }
 
 })();
+
+// test
+const tp = TWOPHASE.twophase;
+tp.initialize();
+// tp.test();
+// tp.solve("F2 U2 B' D2 U2 B2 R2 B R2 D2 F L B' D' R2 B R2 D L2 D2 R'");
+// tp.solve("U R");
+
+let s;
+let e;
+let n = 100;
+s = Date.now();
+for (let i = 0; i < n; i++) {
+  tp.getScramble();
+  console.log(i + 1 + ' scramble done.')
+}
+e = Date.now();
+console.log('average: ' + ((e - s) / n) + ' ms')
