@@ -23,8 +23,6 @@ numbering
              +------------+             
 */
 
-const fs = require('fs');
-
 let TWOPHASE = {};
 
 TWOPHASE.twophase = (() => {
@@ -47,21 +45,11 @@ let eSliceTable;
 let cPTable;
 let eSliceTable2;
 let UDEPTable;
-let mSliceTable;
-let sSliceTable;
 
 let twistESlicePrun;
 let flipESlicePrun;
 let cPESlicePrun;
 let UDEPESlicePrun;
-let twistPrun;
-let flipPrun;
-let eSlicePrun;
-
-let cPPrun;
-let UDEPPrun;
-let mSlicePrun;
-let sSlicePrun;
 
 let initialized = false;
 
@@ -131,52 +119,6 @@ const getUDEP = (obj) => {
     flag ^= 1 << obj.ep[i];
   }
   return ret;
-}
-
-const getMSlice = (obj) => {
-  let ret = 0
-  let s = 4;
-  let perm = [];
-  for (let i = 0; i < 12; i++) {
-    if (obj.ep[i] < 4) {
-      ret += Cnk[11 - i][s--];
-      perm.push(obj.ep[i]);
-    }
-  }
-
-  let flag = 15;
-  let _ret = 0;
-  let tmp;
-  for (let i = 0; i < 4; i++) {
-    tmp = 15 >> 4 - perm[i];
-    _ret += fact(3 - i) * bitCount(flag & tmp);
-    flag ^= 1 << perm[i];
-  }
-
-  return ret * 24 + _ret;
-}
-
-const getSSlice = (obj) => {
-  let ret = 0
-  let s = 4;
-  let perm = [];
-  for (let i = 0; i < 12; i++) {
-    if (obj.ep[i] >= 4 && obj.ep[i] <= 7) {
-      ret += Cnk[11 - i][s--];
-      perm.push(obj.ep[i] - 4);
-    }
-  }
-
-  let flag = 15;
-  let _ret = 0;
-  let tmp;
-  for (let i = 0; i < 4; i++) {
-    tmp = 15 >> 4 - perm[i];
-    _ret += fact(3 - i) * bitCount(flag & tmp);
-    flag ^= 1 << perm[i];
-  }
-
-  return ret * 24 + _ret;
 }
 
 const setCP = (obj, idx) => {
@@ -251,54 +193,6 @@ const setUDEP = (obj, idx) => {
   }
 }
 
-const setMSlice = (obj, idx) => {
-  let _idx = idx % 24;
-
-  let arr = [0, 1, 2, 3];
-  let perm = [];
-  let tmp;
-  for (let i = 0; i < 4; i++) {
-    tmp = 1 << _idx / fact(3 - i) | 0;
-    perm.push(arr.splice(bitCount(tmp - 1), 1)[0]);
-    _idx = _idx % fact(3 - i);
-  }
-
-  idx = idx / 24 | 0;
-  let s = 4;
-  for (let i = 0; i < 12; i++) {
-    if (idx >= Cnk[11 - i][s]) {
-      obj.ep[i] = perm[4 - s];
-      idx -= Cnk[11 - i][s--];
-    } else {
-      obj.ep[i] = i + s;
-    }
-  }
-}
-
-const setSSlice = (obj, idx) => {
-  let _idx = idx % 24;
-
-  let arr = [4, 5, 6, 7];
-  let perm = [];
-  let tmp;
-  for (let i = 0; i < 4; i++) {
-    tmp = 1 << _idx / fact(3 - i) | 0;
-    perm.push(arr.splice(bitCount(tmp - 1), 1)[0]);
-    _idx = _idx % fact(3 - i);
-  }
-
-  idx = idx / 24 | 0;
-  let s = 4;
-  for (let i = 0; i < 12; i++) {
-    if (idx >= Cnk[11 - i][s]) {
-      obj.ep[i] = perm[4 - s];
-      idx -= Cnk[11 - i][s--];
-    } else {
-      obj.ep[i] = [0, 1, 2, 3, 8, 9, 10, 11][i - 4 + s];
-    }
-  }
-}
-
 const getCornerParity = (idx) => {
   let tmp;
   let p = 0;
@@ -308,7 +202,7 @@ const getCornerParity = (idx) => {
     idx = idx % fact(7 - i);
   }
 
-  return p & 1 // 奇置換なら1, 偶置換なら0を返す
+  return p & 1;
 }
 
 const getEdgeParity = (idx) => {
@@ -320,7 +214,7 @@ const getEdgeParity = (idx) => {
     idx = idx % fact(11 - i);
   }
 
-  return p & 1 // 奇置換なら1, 偶置換なら0を返す
+  return p & 1;
 }
 
 const initTable = () => {
@@ -330,8 +224,6 @@ const initTable = () => {
   initCPTable();
   initESliceTable2();
   initUDEPTable();
-  // initMSliceTable();
-  // initSSliceTable();
 }
 
 const initTwistTable = () => {
@@ -394,21 +286,6 @@ const initCPTable = () => {
   }
 }
 
-// const initESliceTable2 = () => {
-//   eSliceTable2 = create2DArray(11880, 18);
-//   let obj_0 = {};
-//   let obj_1 = {};
-//   $init(obj_0);
-//   $init(obj_1);
-//   for (let i = 0; i < 11880; i++) {
-//     setESlice2(obj_0, i);
-//     for (let j = 0; j < 18; j++) {
-//       $multiply(obj_0, moveObject[j], obj_1);
-//       eSliceTable2[i][j] = getESlice2(obj_1);
-//     }
-//   }
-// }
-
 const initESliceTable2 = () => {
   eSliceTable2 = create2DArray(24, 18);
   let obj_0 = {};
@@ -439,354 +316,125 @@ const initUDEPTable = () => {
   }
 }
 
-const initMSliceTable = () => {
-  mSliceTable = create2DArray(11880, 18);
-  let obj_0 = {};
-  let obj_1 = {};
-  $init(obj_0);
-  $init(obj_1);
-  for (let i = 0; i < 11880; i++) {
-    setMSlice(obj_0, i);
-    for (let j = 0; j < 18; j++) {
-      $multiply(obj_0, moveObject[j], obj_1);
-      mSliceTable[i][j] = getMSlice(obj_1);
-    }
-  }
-}
-
-const initSSliceTable = () => {
-  sSliceTable = create2DArray(11880, 18);
-  let obj_0 = {};
-  let obj_1 = {};
-  $init(obj_0);
-  $init(obj_1);
-  for (let i = 0; i < 11880; i++) {
-    setSSlice(obj_0, i);
-    for (let j = 0; j < 18; j++) {
-      $multiply(obj_0, moveObject[j], obj_1);
-      sSliceTable[i][j] = getSSlice(obj_1);
-    }
-  }
-}
-
 const initPrun = () => {
-  let prun = fs.readFileSync('prun.json');
-  prun = JSON.parse(prun);
-  twistESlicePrun = prun.twistESlicePrun;
-  flipESlicePrun = prun.flipESlicePrun;
-  cPESlicePrun = prun.cPESlicePrun;
-  UDEPESlicePrun = prun.UDEPESlicePrun;
-  // initTwistESlicePrun();
-  // initFlipESlicePrun();
-  // initCPESlicePrun();
-  // initUDEPESlicePrun();
-  // initTwistPrun();
-  // initFlipPrun();
-  // initESlicePrun();
-  // initCPPrun();
-  // initUDEPPrun();
-  // initMSlicePrun();
-  // initSSlicePrun();
+  initTwistESlicePrun();
+  initFlipESlicePrun();
+  initCPESlicePrun();
+  initUDEPESlicePrun();
 }
 
 
 const initTwistESlicePrun = () => {
   twistESlicePrun = Array(1082565);
+  twistESlicePrun.fill(15);
 
-  let visited = Array(1082565);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children1;
-  let children2;
-  let done = 0;
+  let children1, children2, done, depth;
 
-  queue.push([0, 0, 0]);
-  visited[0] = 1;
+  twistESlicePrun[0] = 0;
+  done = 1;
+  depth = 0;
   while (done < 1082565) {
-    if (done % 10000 === 0) {console.log(done)};
-    cur = queue.pop();
-    twistESlicePrun[cur[0] * 495 + cur[1]] = cur[2];
-    done++;
-    children1 = twistTable[cur[0]]
-    children2 = eSliceTable2[cur[1]];
-    for (let i = 0; i < 18; i++) {
-      if (visited[children1[i] * 495 + children2[i]] === 0) {
-        visited[children1[i] * 495 + children2[i]] = 1;
-        queue.push([children1[i], children2[i], cur[2] + 1]);
+    for (let i = 0; i < 1082565; i++) {
+      if (twistESlicePrun[i] !== depth) {
+        continue;
+      }
+      
+      children1 = twistTable[i / 495 | 0];
+      children2 = eSliceTable[i % 495];
+      for (let j = 0; j < 18; j++) {
+        if (twistESlicePrun[children1[j] * 495 + children2[j]] === 15) {
+          twistESlicePrun[children1[j] * 495 + children2[j]] = depth + 1;
+          done++
+        }
       }
     }
+    depth++;
   }
 }
 
 const initFlipESlicePrun = () => {
   flipESlicePrun = Array(1013760);
+  flipESlicePrun.fill(15);
 
-  let visited = Array(1013760);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children1;
-  let children2;
-  let done = 0;
+  let children1, children2, done, depth;
 
-  queue.push([0, 0, 0]);
-  visited[0] = 1;
+  flipESlicePrun[0] = 0;
+  done = 1;
+  depth = 0;
   while (done < 1013760) {
-    if (done % 10000 === 0) {console.log(done)};
-    cur = queue.pop();
-    flipESlicePrun[cur[0] * 495 + cur[1]] = cur[2];
-    done++;
-    children1 = flipTable[cur[0]]
-    children2 = eSliceTable[cur[1]];
-    for (let i = 0; i < 18; i++) {
-      if (visited[children1[i] * 495 + children2[i]] === 0) {
-        visited[children1[i] * 495 + children2[i]] = 1;
-        queue.push([children1[i], children2[i], cur[2] + 1]);
+    for (let i = 0; i < 1013760; i++) {
+      if (flipESlicePrun[i] !== depth) {
+        continue;
+      }
+      
+      children1 = flipTable[i / 495 | 0];
+      children2 = eSliceTable[i % 495];
+      for (let j = 0; j < 18; j++) {
+        if (flipESlicePrun[children1[j] * 495 + children2[j]] === 15) {
+          flipESlicePrun[children1[j] * 495 + children2[j]] = depth + 1;
+          done++
+        }
       }
     }
+    depth++;
   }
 }
 
 const initCPESlicePrun = () => {
-  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
   cPESlicePrun = Array(967680);
+  cPESlicePrun.fill(15);
 
-  let visited = Array(967680);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children1;
-  let children2;
-  let done = 0;
+  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
+  let children1, children2, done, depth;
 
-  queue.push([0, 0, 0]);
-  visited[0] = 1;
+  cPESlicePrun[0] = 0;
+  done = 1;
+  depth = 0;
   while (done < 967680) {
-    if (done % 10000 === 0) {console.log(done)};
-    cur = queue.pop();
-    cPESlicePrun[cur[0] * 24 + cur[1]] = cur[2];
-    done++;
-    children1 = cPTable[cur[0]]
-    children2 = eSliceTable2[cur[1]];
-    for (let i = 0; i < 10; i++) {
-      if (visited[children1[arr[i]] * 24 + children2[arr[i]]] === 0) {
-        visited[children1[arr[i]] * 24 + children2[arr[i]]] = 1;
-        queue.push([children1[arr[i]], children2[arr[i]], cur[2] + 1]);
+    for (let i = 0; i < 967680; i++) {
+      if (cPESlicePrun[i] !== depth) {
+        continue;
+      }
+      
+      children1 = cPTable[i / 24 | 0];
+      children2 = eSliceTable2[i % 24];
+      for (let j = 0; j < 10; j++) {
+        if (cPESlicePrun[children1[arr[j]] * 24 + children2[arr[j]]] === 15) {
+          cPESlicePrun[children1[arr[j]] * 24 + children2[arr[j]]] = depth + 1;
+          done++
+        }
       }
     }
+    depth++;
   }
 }
 
 const initUDEPESlicePrun = () => {
-  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
   UDEPESlicePrun = Array(967680);
+  UDEPESlicePrun.fill(15);
 
-  let visited = Array(967680);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children1;
-  let children2;
-  let done = 0;
+  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
+  let children1, children2, done, depth;
 
-  queue.push([0, 0, 0]);
-  visited[0] = 1;
+  UDEPESlicePrun[0] = 0;
+  done = 1;
+  depth = 0;
   while (done < 967680) {
-    if (done % 10000 === 0) {console.log(done)};
-    cur = queue.pop();
-    UDEPESlicePrun[cur[0] * 24 + cur[1]] = cur[2];
-    done++;
-    children1 = UDEPTable[cur[0]]
-    children2 = eSliceTable2[cur[1]];
-    for (let i = 0; i < 10; i++) {
-      if (visited[children1[arr[i]] * 24 + children2[arr[i]]] === 0) {
-        visited[children1[arr[i]] * 24 + children2[arr[i]]] = 1;
-        queue.push([children1[arr[i]], children2[arr[i]], cur[2] + 1]);
+    for (let i = 0; i < 967680; i++) {
+      if (UDEPESlicePrun[i] !== depth) {
+        continue;
+      }
+      
+      children1 = UDEPTable[i / 24 | 0];
+      children2 = eSliceTable2[i % 24];
+      for (let j = 0; j < 10; j++) {
+        if (UDEPESlicePrun[children1[arr[j]] * 24 + children2[arr[j]]] === 15) {
+          UDEPESlicePrun[children1[arr[j]] * 24 + children2[arr[j]]] = depth + 1;
+          done++
+        }
       }
     }
-  }
-}
-
-const initTwistPrun = () => {
-  twistPrun = Array(2187);
-
-  let visited = Array(2187);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children;
-  let done = 0;
-
-  queue.push([0, 0]);
-  visited[0] = 1;
-  while (done < 2187) {
-    cur = queue.pop();
-    twistPrun[cur[0]] = cur[1];
-    done++;
-    children = twistTable[cur[0]];
-    for (let i = 0; i < 18; i++) {
-      if (visited[children[i]] === 0) {
-        visited[children[i]] = 1;
-        queue.push([children[i], cur[1] + 1]);
-      }
-    }
-  }
-}
-
-const initFlipPrun = () => {
-  flipPrun = Array(2048);
-
-  let visited = Array(2048);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children;
-  let done = 0;
-
-  queue.push([0, 0]);
-  visited[0] = 1;
-  while (done < 2048) {
-    cur = queue.pop();
-    flipPrun[cur[0]] = cur[1];
-    done++;
-    children = flipTable[cur[0]];
-    for (let i = 0; i < 18; i++) {
-      if (visited[children[i]] === 0) {
-        visited[children[i]] = 1;
-        queue.push([children[i], cur[1] + 1]);
-      }
-    }
-  }
-}
-
-const initESlicePrun = () => {
-  eSlicePrun = Array(495);
-
-  let visited = Array(495);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children;
-  let done = 0;
-
-  queue.push([0, 0]);
-  visited[0] = 1;
-  while (done < 495) {
-    cur = queue.pop();
-    eSlicePrun[cur[0]] = cur[1];
-    done++;
-    children = eSliceTable[cur[0]];
-    for (let i = 0; i < 18; i++) {
-      if (visited[children[i]] === 0) {
-        visited[children[i]] = 1;
-        queue.push([children[i], cur[1] + 1]);
-      }
-    }
-  }
-}
-
-const initCPPrun = () => {
-  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
-  cPPrun = Array(40320);
-
-  let visited = Array(40320);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children;
-  let done = 0;
-
-  queue.push([0, 0]);
-  visited[0] = 1;
-  while (done < 40320) {
-    cur = queue.pop();
-    cPPrun[cur[0]] = cur[1];
-    done++;
-    children = cPTable[cur[0]];
-    for (let i = 0; i < 10; i++) {
-      if (visited[children[arr[i]]] === 0) {
-        visited[children[arr[i]]] = 1;
-        queue.push([children[arr[i]], cur[1] + 1]);
-      }
-    }
-  }
-}
-
-const initUDEPPrun = () => {
-  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
-  UDEPPrun = Array(40320);
-
-  let visited = Array(40320);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children;
-  let done = 0;
-
-  queue.push([0, 0]);
-  visited[0] = 1;
-  while (done < 40320) {
-    cur = queue.pop();
-    UDEPPrun[cur[0]] = cur[1];
-    done++;
-    children = UDEPTable[cur[0]];
-    for (let i = 0; i < 10; i++) {
-      if (visited[children[arr[i]]] === 0) {
-        visited[children[arr[i]]] = 1;
-        queue.push([children[arr[i]], cur[1] + 1]);
-      }
-    }
-  }
-}
-
-const initMSlicePrun = () => {
-  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
-  mSlicePrun = Array(11880);
-
-  let visited = Array(11880);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children;
-
-  queue.push([11856, 0]);
-  visited[11856] = 1;
-  while (queue.size() > 0) {
-    cur = queue.pop();
-    mSlicePrun[cur[0]] = cur[1];
-    children = mSliceTable[cur[0]];
-    for (let i = 0; i < 10; i++) {
-      if (visited[children[arr[i]]] === 0) {
-        visited[children[arr[i]]] = 1;
-        queue.push([children[arr[i]], cur[1] + 1]);
-      }
-    }
-  }
-}
-
-const initSSlicePrun = () => {
-  let arr = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
-  sSlicePrun = Array(11880);
-
-  let visited = Array(11880);
-  visited.fill(0);
-  let cur;
-  let queue = new Queue();
-  let children;
-
-  queue.push([1656, 0]);
-  visited[1656] = 1;
-  while (queue.size() > 0) {
-    cur = queue.pop();
-    sSlicePrun[cur[0]] = cur[1];
-    children = sSliceTable[cur[0]];
-    for (let i = 0; i < 10; i++) {
-      if (visited[children[arr[i]]] === 0) {
-        visited[children[arr[i]]] = 1;
-        queue.push([children[arr[i]], cur[1] + 1]);
-      }
-    }
+    depth++;
   }
 }
 
@@ -953,21 +601,17 @@ const getRandomState = (seed) => {
 }
 
 const cancelMoves = (moves) => {
-  let l = moves.length;
-  let faceList = Array(l);
-  let axisList = Array(l);
-  let suffixList = Array(l);
+  let l, faceList, axisList, suffixList, newFaceList, newAxisList, newSuffixList, cancelled, ret;
+  l = moves.length;
+  faceList = Array(l);
+  axisList = Array(l);
+  suffixList = Array(l);
   for (let i = 0; i < l; i++) {
     faceList[i] = moves[i] / 3 | 0;
     axisList[i] = faceList[i] % 3;
     suffixList[i] = moves[i] % 3
   }
-  let newFaceList;
-  let newAxisList;
-  let newSuffixList;
-
-  let cancelled;
-
+  
   do {
     cancelled = 0;
     l = faceList.length;
@@ -1005,13 +649,7 @@ const cancelMoves = (moves) => {
     suffixList = newSuffixList.slice();
   } while (cancelled > 0)
 
-  // let ret = '';
-  // for (let i = 0; i < faceList.length; i++) {
-  //   ret += moveName[faceList[i] * 3 + suffixList[i]];
-  // }
-
-  // return ret;
-  let ret = Array(faceList.length);
+  ret = Array(faceList.length);
   for (let i = 0; i < faceList.length; i++) {
     ret[i] = faceList[i] * 3 + suffixList[i];
   }
@@ -1184,33 +822,6 @@ class Stack {
   }
 }
 
-class Queue {
-  constructor() {
-    this.heap = [];
-  }
-
-  empty() {
-    if (this.heap.length === 0) return true;
-    return false;
-  }
-
-  size() {
-    return this.heap.length;
-  }
-
-  top() {
-    return this.heap[0];
-  }
-
-  push(item) {
-    this.heap.push(item);
-  }
-  
-  pop() {
-    return this.heap.shift();
-  }
-}
-
 const initialize = () => {
   if (!initialized) {
     let start;
@@ -1270,21 +881,3 @@ return {
 }
 
 })();
-
-// test
-const tp = TWOPHASE.twophase;
-tp.initialize();
-// tp.test();
-// tp.solve("F2 U2 B' D2 U2 B2 R2 B R2 D2 F L B' D' R2 B R2 D L2 D2 R'");
-// tp.solve("U R");
-
-let s;
-let e;
-let n = 100;
-s = Date.now();
-for (let i = 0; i < n; i++) {
-  tp.getScramble();
-  console.log(i + 1 + ' scramble done.')
-}
-e = Date.now();
-console.log('average: ' + ((e - s) / n) + ' ms')
