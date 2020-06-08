@@ -442,10 +442,7 @@ const initUDEPESlicePrun = () => {
 const search = (root) => {
   let solution1 = null;
   let solution2 = null;
-  let start, end;
 
-  console.log('[phase1]')
-  start = Date.now();
   for (let d = 0; d <= 13; d++) {
     solution1 = searchPhase1(root, d);
     if (solution1 !== null) break;
@@ -455,26 +452,18 @@ const search = (root) => {
     $apply(root, moveObject[solution1[i]]);
   }
 
-  console.log('[phase2]')
   for (let d = 0; d <= 18; d++) {
     solution2 = searchPhase2(root, d);
     if (solution2 !== null) {
-      end = Date.now();
-      console.log((end - start) + 'ms')
       return solution1.concat(solution2);
     }
   }
+
+  return null;
 }
 
 const searchPhase1 = (root, depth) => {
-  let evaluated = 0;
-  let expanded = 0;
-
-  let startTime;
-  let endTime;
-  startTime = Date.now();
-
-  let stack = new Stack(); // obj = [Twist, Flip, ESlice, mv]
+  let stack = new Stack(); // [Twist, Flip, ESlice, moves]
   stack.push([
     getTwist(root),
     getFlip(root),
@@ -483,22 +472,15 @@ const searchPhase1 = (root, depth) => {
   ]);
   let cur, i, face, curFace, mv;
   while(stack.size() > 0) {
-    evaluated++;
     cur = stack.pop();
 
     if(cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
-      endTime = Date.now();
-      console.log(
-        'depth=' + depth + ' [expanded: ' + expanded + ', evaluated: ' + evaluated + ', ' + (endTime - startTime) + ' ms]'
-      );
       return cur[3];
     }
 
     if (cur[3].length + Math.max(twistESlicePrun[cur[0] * 495 + cur[2]], flipESlicePrun[cur[1] * 495 + cur[2]]) > depth) {
       continue;
     }
-
-    expanded++;
 
     for (i = 0; i < 18; i++) {
       face = i / 3 | 0;
@@ -515,22 +497,11 @@ const searchPhase1 = (root, depth) => {
       }
     }
   }
-  endTime = Date.now();
-  console.log(
-    'depth=' + depth + ' [expanded: ' + expanded + ', evaluated: ' + evaluated + ', ' + (endTime - startTime) + ' ms]'
-  );
   return null;
 }
 
 const searchPhase2 = (root, depth) => {
-  let evaluated = 0;
-  let expanded = 0;
-
-  let startTime;
-  let endTime;
-  startTime = Date.now();
-
-  let stack = new Stack(); // obj = [CP, UDEP ESlice, mv]
+  let stack = new Stack(); // [CP, UDEP ESlice, moves]
   stack.push([
     getCP(root),
     getUDEP(root),
@@ -539,21 +510,14 @@ const searchPhase2 = (root, depth) => {
   ]);
   let cur, i, _i, face, curFace, mv;
   while(stack.size() > 0) {
-    evaluated++; // evaluate
     cur = stack.pop();
     if(cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
-      endTime = Date.now();
-      console.log(
-        'depth=' + depth + ' [expanded: ' + expanded + ', evaluated: ' + evaluated + ', ' + (endTime - startTime) + ' ms]'
-      );
       return cur[3];
     }
 
     if (cur[3].length + Math.max(cPESlicePrun[cur[0] * 24 + cur[2]], UDEPESlicePrun[cur[1] * 24 + cur[2]]) > depth) {
       continue;
     }
-
-    expanded++; // expand
 
     for (i = 0; i < 10; i++) {
       _i = restrictedMove[i];
@@ -571,10 +535,6 @@ const searchPhase2 = (root, depth) => {
       }
     }
   }
-  endTime = Date.now();
-  console.log(
-    'depth=' + depth + ' [expanded: ' + expanded + ', evaluated: ' + evaluated + ', ' + (endTime - startTime) + ' ms]'
-  );
   return null;
 }
 
@@ -822,16 +782,11 @@ class Stack {
 
 const initialize = () => {
   if (!initialized) {
-    let start;
-    let end;
-    start = Date.now();
     console.log('Initializing...')
     initUtil();
     initTable();
     initPrun();
     initialized = true;
-    end = Date.now();
-    console.log((end - start) + ' ms')
   }
 }
 
@@ -844,7 +799,7 @@ const solve = (scramble) => {
   let solution = '';
 
   for (let i = 0; i < arr.length; i++) {
-    $apply(obj, moveObject[moveName.indexOf(arr[i])]);
+    if (moveName.indexOf(arr[i]) >= 0) $apply(obj, moveObject[moveName.indexOf(arr[i])]);
   }
 
   _solution = search(obj);
@@ -879,7 +834,3 @@ return {
 }
 
 })();
-
-const tp = TWOPHASE.twophase;
-tp.initialize()
-tp.solve("D2 R' B2 U2 L' F2 L2 F2 L' D2 L2 U B F D' U' B U' L2 R'")
