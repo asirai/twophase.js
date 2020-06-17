@@ -474,7 +474,7 @@ const searchPhase1 = (root, depth) => {
   while(stack.size() > 0) {
     cur = stack.pop();
 
-    if(cur[3].length === depth && cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
+    if(cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
       return cur[3];
     }
 
@@ -511,6 +511,7 @@ const searchPhase2 = (root, depth) => {
   let cur, i, _i, face, curFace, mv;
   while(stack.size() > 0) {
     cur = stack.pop();
+
     if(cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
       return cur[3];
     }
@@ -834,7 +835,3 @@ return {
 }
 
 })();
-
-const tp = TWOPHASE.twophase;
-tp.initialize();
-tp.solve("F R2 U2 L F D L2 D' B2 L' F2 D' L2 D' B2 U R2 F2 B2 D B2");
