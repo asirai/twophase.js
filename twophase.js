@@ -1,28 +1,3 @@
-/*
-twophase.js
-
-numbering
-             +------------+
-             | 02  01  03 |
-             |            |
-             | 05  fU  04 |
-             |            |
-             | 01  00  00 |
-+------------+------------+------------+------------+
-| 02  05  01 | 01  00  00 | 00  04  03 | 03  01  02 |
-|            |            |            |            |
-| 10  fL  09 | 09  fF  08 | 08  fR  11 | 11  fB  10 |
-|            |            |            |            |
-| 06  06  07 | 07  03  04 | 04  07  05 | 05  02  06 |
-+------------+------------+------------+------------+
-             | 07  03  04 |
-             |            |
-             | 06  fD  07 |
-             |            |
-             | 06  02  05 |
-             +------------+             
-*/
-
 let TWOPHASE = {};
 
 TWOPHASE.twophase = (() => {
@@ -462,8 +437,40 @@ const search = (root) => {
   return null;
 }
 
+const _search = (root, max) => {
+  let solution1 = null;
+  let solution2 = null;
+  let solution = null;
+  let obj = {};
+
+  for (let d = 0; d <= 13; d++) {
+    solution1 = _searchPhase1(root, d);
+    if (solution1 !== null) {
+      for (let j = 0; j < solution1.length; j++) {
+        $init(obj);
+        $copy(root, obj);
+        for (let i = 0; i < solution1[j].length; i++) {
+          $apply(obj, moveObject[solution1[j][i]]);
+        }
+        for (let _d = 0; _d <= max - solution1[j].length; _d++) {
+          solution2 = searchPhase2(obj, _d);
+          if (solution2 !== null) {
+            solution = solution1[j].concat(solution2);
+            solution = cancelMoves(solution);
+            if (solution.length <= max) {
+              return solution;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 const searchPhase1 = (root, depth) => {
-  let stack = new Stack(); // [Twist, Flip, ESlice, moves]
+  let stack = new Stack();
   stack.push([
     getTwist(root),
     getFlip(root),
@@ -485,7 +492,7 @@ const searchPhase1 = (root, depth) => {
     for (i = 0; i < 18; i++) {
       face = i / 3 | 0;
       curFace = cur[3].length === 0 ? -1 : cur[3][cur[3].length - 1] / 3 | 0;
-      if (face !== curFace || face > curFace) {
+      if (face % 3 !== curFace % 3 || face > curFace) {
         mv = cur[3].slice();
         mv.push(i)
         stack.push([
@@ -500,8 +507,51 @@ const searchPhase1 = (root, depth) => {
   return null;
 }
 
+const _searchPhase1 = (root, depth) => {
+  let stack = new Stack();
+  stack.push([
+    getTwist(root),
+    getFlip(root),
+    getESlice(root),
+    []
+  ]);
+  let cur, i, face, curFace, mv, ret;
+  ret = [];
+  while(stack.size() > 0) {
+    cur = stack.pop();
+
+    if(cur[3].length === depth && cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
+      ret.push(cur[3]);
+    }
+
+    if (cur[3].length + Math.max(twistESlicePrun[cur[0] * 495 + cur[2]], flipESlicePrun[cur[1] * 495 + cur[2]]) > depth) {
+      continue;
+    }
+
+    for (i = 0; i < 18; i++) {
+      face = i / 3 | 0;
+      curFace = cur[3].length === 0 ? -1 : cur[3][cur[3].length - 1] / 3 | 0;
+      if (face % 3 !== curFace % 3 || face > curFace) {
+        mv = cur[3].slice();
+        mv.push(i)
+        stack.push([
+          twistTable[cur[0]][i],
+          flipTable[cur[1]][i],
+          eSliceTable[cur[2]][i],
+          mv
+        ]);
+      }
+    }
+  }
+  if (ret.length > 0) {
+    return ret;
+  } else {
+    return null;
+  }
+}
+
 const searchPhase2 = (root, depth) => {
-  let stack = new Stack(); // [CP, UDEP ESlice, moves]
+  let stack = new Stack();
   stack.push([
     getCP(root),
     getUDEP(root),
@@ -524,7 +574,7 @@ const searchPhase2 = (root, depth) => {
       _i = restrictedMove[i];
       face = _i / 3 | 0;
       curFace = cur[3].length === 0 ? -1 : cur[3][cur[3].length - 1] / 3 | 0;
-      if (face !== curFace || face > curFace) {
+      if (face % 3 !== curFace % 3 || face > curFace) {
         mv = cur[3].slice();
         mv.push(_i);
         stack.push([
@@ -708,6 +758,13 @@ const $multiply = (obj, mv, ret) => {
   ret.eo = newEo;
 }
 
+const $copy = (obj, ret) => {
+  ret.cp = obj.cp.slice();
+  ret.co = obj.co.slice();
+  ret.ep = obj.ep.slice();
+  ret.eo = obj.eo.slice();
+}
+
 const bitCount = (bits) =>{
   bits = (bits & 0x55555555) + (bits >> 1 & 0x55555555);
   bits = (bits & 0x33333333) + (bits >> 2 & 0x33333333);
@@ -813,9 +870,8 @@ const solve = (scramble) => {
 }
 
 const getScramble = (seed) => {
-  let scramble, scr, solution, ret;
+  let scr, solution, ret;
 
-  scramble = '';
   scr = getRandomState(seed);
   solution = search(scr);
   solution = cancelMoves(solution);
@@ -828,10 +884,59 @@ const getScramble = (seed) => {
   return ret;
 }
 
+const _solve = (scramble, max = 22) => {
+  console.log('scramble: ' + scramble);
+  let arr = scramble.split(' ');
+  let obj = {}
+  $init(obj);
+  let _solution;
+  let solution = '';
+
+  for (let i = 0; i < arr.length; i++) {
+    if (moveName.indexOf(arr[i]) >= 0) $apply(obj, moveObject[moveName.indexOf(arr[i])]);
+  }
+
+  _solution = _search(obj, max);
+  if (_solution == null) {
+    return 'Error';
+  }
+  _solution = cancelMoves(_solution);
+  _solution.forEach((val) => {
+    solution += moveName[val] + ' '
+  })
+  console.log('solution: ' + solution);
+  return solution;
+}
+
+const _getScramble = (seed, max = 22) => {
+  let scr, solution, ret;
+
+  scr = getRandomState(seed);
+  solution = _search(scr, max);
+  if (solution == null) {
+    return 'Error';
+  }
+  solution = cancelMoves(solution);
+  solution.reverse();
+  ret = '';
+  solution.forEach((val) => {
+    ret += moveName[val] + ' '
+  })
+  console.log(ret)
+  return ret;
+}
+
 return {
   initialize: initialize,
-  solve: solve,
-  getScramble: getScramble
+  solveFast: solve,
+  getScrambleFast: getScramble,
+  solve: _solve,
+  getScramble: _getScramble,
 }
 
 })();
+
+const tp = TWOPHASE.twophase;
+tp.initialize();
+tp.solve("D2 R U2 B' D' F U2 L' U R2 B D2 F B2 D2 L2 B'"); // solution: F D' R' B' U' F' B2 U' L D' F2 U' R2 F2 D' R2 B2 D' R2 D L2 D2
+tp.getScramble(347); // U R2 U' R2 D L2 D' F2 U2 B2 F2 L2 D' R' B L2 D' L2 U R' F D' L2
