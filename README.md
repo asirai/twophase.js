@@ -5,7 +5,7 @@ twophase.js
 
 ### Usage ###
 
-Call `TWOPHASE.twophase.initialize()` before use.
+Call `TWOPHASE.twophase.initialize()` before use. This takes about 1 second on a modern computer.
 ```javascript
 const tp = TWOPHASE.twophase;
 tp.initialize();
@@ -18,4 +18,3 @@ tp.solve("D2 R U2 B' D' F U2 L' U R2 B D2 F B2 D2 L2 B'"); // solution: F D' R' 
 ```javascript
 tp.getScramble(347); // D R2 U R2 U2 R2 U L2 R2 D2 F2 L2 B L F' D U R U2 R' U B'
 ```
-`TWOPHASE.twophase.solveFast(scramble)` and `TWOPHASE.twophase.getScrambleFast(seed)` are faster but return a longer solution or scramble.

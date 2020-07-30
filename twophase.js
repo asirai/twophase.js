@@ -201,96 +201,72 @@ const initTable = () => {
 
 const initTwistTable = () => {
   twistTable = create2DArray(2187, 18);
-  let obj_0 = {};
-  let obj_1 = {};
-  $init(obj_0);
-  $init(obj_1);
+  let obj_0 = new ArrayCube()
   let i, j;
   for (i = 0; i < 2187; i++) {
     setTwist(obj_0, i);
     for (j = 0; j < 18; j++) {
-      $multiply(obj_0, moveObject[j], obj_1)
-      twistTable[i][j] = getTwist(obj_1);
+      twistTable[i][j] = getTwist(obj_0.apply(moveObject[j]));
     }
   }
 }
 
 const initFlipTable = () => {
   flipTable = create2DArray(2048, 18);
-  let obj_0 = {};
-  let obj_1 = {};
-  $init(obj_0);
-  $init(obj_1);
+  let obj_0 = new ArrayCube()
   let i, j;
   for (i = 0; i < 2048; i++) {
     setFlip(obj_0, i);
     for (j = 0; j < 18; j++) {
-      $multiply(obj_0, moveObject[j], obj_1)
-      flipTable[i][j] = getFlip(obj_1);
+      flipTable[i][j] = getFlip(obj_0.apply(moveObject[j]));
     }
   }
 }
 
 const initESliceTable = () => {
   eSliceTable = create2DArray(495, 18);
-  let obj_0 = {};
-  let obj_1 = {};
-  $init(obj_0);
-  $init(obj_1);
+  let obj_0 = new ArrayCube()
   let i, j;
   for (i = 0; i < 495; i++) {
     setESlice(obj_0, i);
     for (j = 0; j < 18; j++) {
-      $multiply(obj_0, moveObject[j], obj_1)
-      eSliceTable[i][j] = getESlice(obj_1);
+      eSliceTable[i][j] = getESlice(obj_0.apply(moveObject[j]));
     }
   }
 }
 
 const initCPTable = () => {
   cPTable = create2DArray(40320, 10);
-  let obj_0 = {};
-  let obj_1 = {};
-  $init(obj_0);
-  $init(obj_1);
+  let obj_0 = new ArrayCube()
   let i, j;
   for (i = 0; i < 40320; i++) {
     setCP(obj_0, i);
     for (j = 0; j < 10; j++) {
-      $multiply(obj_0, moveObject[restrictedMove[j]], obj_1);
-      cPTable[i][j] = getCP(obj_1);
+      cPTable[i][j] = getCP(obj_0.apply(moveObject[restrictedMove[j]]));
     }
   }
 }
 
 const initUDEPTable = () => {
   UDEPTable = create2DArray(40320, 10);
-  let obj_0 = {};
-  let obj_1 = {};
-  $init(obj_0);
-  $init(obj_1);
+  let obj_0 = new ArrayCube()
   let i, j;
   for (i = 0; i < 40320; i++) {
     setUDEP(obj_0, i);
     for (j = 0; j < 10; j++) {
-      $multiply(obj_0, moveObject[restrictedMove[j]], obj_1);
-      UDEPTable[i][j] = getUDEP(obj_1);
+      UDEPTable[i][j] = getUDEP(obj_0.apply(moveObject[restrictedMove[j]]));
     }
   }
 }
 
 const initESliceTable2 = () => {
   eSliceTable2 = create2DArray(24, 10);
-  let obj_0 = {};
-  let obj_1 = {};
-  $init(obj_0);
-  $init(obj_1);
+  let obj_0 = new ArrayCube()
   let i, j;
   for (i = 0; i < 24; i++) {
     setESlice2(obj_0, i);
     for (j = 0; j < 10; j++) {
-      $multiply(obj_0, moveObject[restrictedMove[j]], obj_1);
-      eSliceTable2[i][j] = getESlice2(obj_1);
+      eSliceTable2[i][j] = getESlice2(obj_0.apply(moveObject[restrictedMove[j]]));
     }
   }
 }
@@ -414,185 +390,173 @@ const initUDEPESlicePrun = () => {
   }
 }
 
-const search = (root) => {
-  let solution1 = null;
-  let solution2 = null;
-
-  for (let d = 0; d <= 13; d++) {
-    solution1 = searchPhase1(root, d);
-    if (solution1 !== null) break;
+class ArrayCube {
+  constructor(cp, co, ep, eo) {
+    this.cp = cp ? cp : [0, 1, 2, 3, 4, 5, 6, 7]
+    this.co = co ? co : [0, 0, 0, 0, 0, 0, 0, 0]
+    this.ep = ep ? ep : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    this.eo = eo ? eo : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   }
 
-  for (let i = 0; i < solution1.length; i++) {
-    $apply(root, moveObject[solution1[i]]);
+  apply(move) {
+    return new ArrayCube(
+      this.cp.map((cur, idx) => this.cp[move.cp[idx]]),
+      this.co.map((cur, idx) => (this.co[move.cp[idx]] + move.co[idx]) % 3),
+      this.ep.map((cur, idx) => this.ep[move.ep[idx]]),
+      this.eo.map((cur, idx) => (this.eo[move.ep[idx]] + move.eo[idx]) % 2)
+    )
   }
 
-  for (let d = 0; d <= 18; d++) {
-    solution2 = searchPhase2(root, d);
-    if (solution2 !== null) {
-      return solution1.concat(solution2);
-    }
+  copy() {
+    return new ArrayCube(
+      this.cp,
+      this.co,
+      this.ep,
+      this.eo
+    )
   }
 
-  return null;
+  toIndexPhase1() {
+    return new IndexCubePhase1(
+      getTwist(this),
+      getFlip(this),
+      getESlice(this),
+      []
+    )
+  }
+
+  toIndexPhase2() {
+    return new IndexCubePhase2(
+      getCP(this),
+      getUDEP(this),
+      getESlice2(this),
+      []
+    )
+  }
 }
 
-const _search = (root, max) => {
-  let solution1 = null;
-  let solution2 = null;
-  let solution = null;
-  let obj = {};
+class IndexCubePhase1 {
+  constructor(twist, flip, eslice, move) {
+    this.twist = twist ? twist : 0
+    this.flip = flip ? flip : 0
+    this.eslice = eslice ? eslice : 0
+    this.move = move ? move : []
+  }
 
-  for (let d = 0; d <= 13; d++) {
-    solution1 = _searchPhase1(root, d);
-    if (solution1 !== null) {
-      for (let j = 0; j < solution1.length; j++) {
-        $init(obj);
-        $copy(root, obj);
-        for (let i = 0; i < solution1[j].length; i++) {
-          $apply(obj, moveObject[solution1[j][i]]);
+  apply(move) {
+    let newTwist, newFlip, newESlice, newMove
+    newTwist = twistTable[this.twist][move]
+    newFlip = flipTable[this.flip][move]
+    newESlice = eSliceTable[this.eslice][move]
+    newMove = this.move.slice()
+    newMove.push(move)
+    return new IndexCubePhase1(
+      newTwist,
+      newFlip,
+      newESlice,
+      newMove
+    )
+  }
+
+  toArray() {
+    return
+  }
+}
+
+class IndexCubePhase2 {
+  constructor(cp, udep, eslice2, move) {
+    this.cp = cp ? cp : 0
+    this.udep = udep ? udep : 0
+    this.eslice2 = eslice2 ? eslice2 : 0
+    this.move = move ? move : []
+  }
+
+  apply(move) {
+    let _move = restrictedMove.indexOf(move)
+    let newCp, newUDEP, newESlice2, newMove
+    newCp = cPTable[this.cp][_move]
+    newUDEP = UDEPTable[this.udep][_move]
+    newESlice2 = eSliceTable2[this.eslice2][_move]
+    newMove = this.move.slice()
+    newMove.push(move)
+    return new IndexCubePhase2(
+      newCp,
+      newUDEP,
+      newESlice2,
+      newMove
+    )
+  }
+
+  toArray() {
+    return
+  }
+}
+
+const search = (root, max) => {
+  let stack, _stack, root1, root2, _root
+
+  root1 = root.toIndexPhase1()
+
+  for (let depth = 0; depth <= 13; depth++) {
+    stack = new Stack()
+    stack.push(root1)
+    let cur, nextMove, nextFace, curFace
+    while(stack.size() > 0) {
+      cur = stack.pop();
+      if(cur.move.length === depth && cur.twist === 0 && cur.flip === 0 && cur.eslice === 0) {
+        _root = root.copy()
+        for (let i = 0; i < cur.move.length; i++) {
+          _root = _root.apply(moveObject[cur.move[i]])
         }
-        for (let _d = 0; _d <= max - solution1[j].length; _d++) {
-          solution2 = searchPhase2(obj, _d);
-          if (solution2 !== null) {
-            solution = solution1[j].concat(solution2);
-            solution = cancelMoves(solution);
-            if (solution.length <= max) {
-              return solution;
+        root2 = _root.toIndexPhase2()
+
+        for (let _depth = 0; _depth <= max - cur.move.length; _depth++) {
+          _stack = new Stack()
+          _stack.push(root2)
+          let _cur, _nextMove, _nextFace, _curFace
+          while(_stack.size() > 0) {
+            _cur = _stack.pop();
+            if(_cur.cp === 0 && _cur.udep === 0 && _cur.eslice2 === 0) {
+              return cur.move.concat(_cur.move)
+            }
+
+            if (_cur.move.length + Math.max(cPESlicePrun[_cur.cp * 24 + _cur.eslice2], UDEPESlicePrun[_cur.udep * 24 + _cur.eslice2]) > _depth) {
+              continue;
+            }
+
+            for (let i = 0; i < 10; i++) {
+              _nextMove = restrictedMove[i]
+              _nextFace = _nextMove / 3 | 0;
+              _curFace = _cur.move.length === 0 ? -1 : _cur.move[_cur.move.length - 1] / 3 | 0;
+              if (_nextFace % 3 !== _curFace % 3 || _nextFace > _curFace) {
+                _stack.push(_cur.apply(_nextMove));
+              }
             }
           }
         }
       }
-    }
-  }
-
-  return null;
-}
-
-const searchPhase1 = (root, depth) => {
-  let stack = new Stack();
-  stack.push([
-    getTwist(root),
-    getFlip(root),
-    getESlice(root),
-    []
-  ]);
-  let cur, i, face, curFace, mv;
-  while(stack.size() > 0) {
-    cur = stack.pop();
-
-    if(cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
-      return cur[3];
-    }
-
-    if (cur[3].length + Math.max(twistESlicePrun[cur[0] * 495 + cur[2]], flipESlicePrun[cur[1] * 495 + cur[2]]) > depth) {
-      continue;
-    }
-
-    for (i = 0; i < 18; i++) {
-      face = i / 3 | 0;
-      curFace = cur[3].length === 0 ? -1 : cur[3][cur[3].length - 1] / 3 | 0;
-      if (face % 3 !== curFace % 3 || face > curFace) {
-        mv = cur[3].slice();
-        mv.push(i)
-        stack.push([
-          twistTable[cur[0]][i],
-          flipTable[cur[1]][i],
-          eSliceTable[cur[2]][i],
-          mv
-        ]);
+  
+      if (cur.move.length + Math.max(twistESlicePrun[cur.twist * 495 + cur.eslice], flipESlicePrun[cur.flip * 495 + cur.eslice]) > depth) {
+        continue;
+      }
+  
+      for (nextMove = 0; nextMove < 18; nextMove++) {
+        nextFace = nextMove / 3 | 0;
+        curFace = cur.move.length === 0 ? -1 : cur.move[cur.move.length - 1] / 3 | 0;
+        if (nextFace % 3 !== curFace % 3 || nextFace > curFace) {
+          stack.push(cur.apply(nextMove));
+        }
       }
     }
   }
-  return null;
-}
 
-const _searchPhase1 = (root, depth) => {
-  let stack = new Stack();
-  stack.push([
-    getTwist(root),
-    getFlip(root),
-    getESlice(root),
-    []
-  ]);
-  let cur, i, face, curFace, mv, ret;
-  ret = [];
-  while(stack.size() > 0) {
-    cur = stack.pop();
-
-    if(cur[3].length === depth && cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
-      ret.push(cur[3]);
-    }
-
-    if (cur[3].length + Math.max(twistESlicePrun[cur[0] * 495 + cur[2]], flipESlicePrun[cur[1] * 495 + cur[2]]) > depth) {
-      continue;
-    }
-
-    for (i = 0; i < 18; i++) {
-      face = i / 3 | 0;
-      curFace = cur[3].length === 0 ? -1 : cur[3][cur[3].length - 1] / 3 | 0;
-      if (face % 3 !== curFace % 3 || face > curFace) {
-        mv = cur[3].slice();
-        mv.push(i)
-        stack.push([
-          twistTable[cur[0]][i],
-          flipTable[cur[1]][i],
-          eSliceTable[cur[2]][i],
-          mv
-        ]);
-      }
-    }
-  }
-  if (ret.length > 0) {
-    return ret;
-  } else {
-    return null;
-  }
-}
-
-const searchPhase2 = (root, depth) => {
-  let stack = new Stack();
-  stack.push([
-    getCP(root),
-    getUDEP(root),
-    getESlice2(root),
-    []
-  ]);
-  let cur, i, _i, face, curFace, mv;
-  while(stack.size() > 0) {
-    cur = stack.pop();
-
-    if(cur[0] === 0 && cur[1] === 0 && cur[2] === 0) {
-      return cur[3];
-    }
-
-    if (cur[3].length + Math.max(cPESlicePrun[cur[0] * 24 + cur[2]], UDEPESlicePrun[cur[1] * 24 + cur[2]]) > depth) {
-      continue;
-    }
-
-    for (i = 0; i < 10; i++) {
-      _i = restrictedMove[i];
-      face = _i / 3 | 0;
-      curFace = cur[3].length === 0 ? -1 : cur[3][cur[3].length - 1] / 3 | 0;
-      if (face % 3 !== curFace % 3 || face > curFace) {
-        mv = cur[3].slice();
-        mv.push(_i);
-        stack.push([
-          cPTable[cur[0]][i],
-          UDEPTable[cur[1]][i],
-          eSliceTable2[cur[2]][i],
-          mv
-        ]);
-      }
-    }
-  }
-  return null;
+  return null
 }
 
 const getRandomState = (seed) => {
   let cp, co, ep, eo;
   let random = new Random(seed);
-  let obj = {};
+  let obj = new ArrayCube();
   do {
     cp = random.randomInt(40320);
     ep = random.randomInt(479001600);
@@ -600,7 +564,6 @@ const getRandomState = (seed) => {
   co = random.randomInt(2187);
   eo = random.randomInt(2048);
 
-  $init(obj);
   setCP(obj, cp);
   setTwist(obj, co);
   setEP(obj, ep);
@@ -683,86 +646,48 @@ const initUtil = () => {
   moveName = ["U", "U2", "U'", "F", "F2", "F'", "R", "R2", "R'", "D", "D2", "D'", "B", "B2", "B'", "L", "L2", "L'"];
 
   moveObject = Array(18);
-  moveObject[U * 3] = {
-    'cp': [3, 0, 1, 2, 4, 5, 6, 7],
-    'co': [0, 0, 0, 0, 0, 0, 0, 0],
-    'ep': [4, 5, 2, 3, 1, 0, 6, 7, 8, 9, 10, 11],
-    'eo': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  }
-  moveObject[F * 3] = {
-    'cp': [1, 7, 2, 3, 0, 5, 6, 4],
-    'co': [1, 2, 0, 0, 2, 0, 0, 1],
-    'ep': [9, 1, 2, 8, 4, 5, 6, 7, 0, 3, 10, 11],
-    'eo': [1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0]
-  };
-  moveObject[R * 3] = {
-    'cp': [4, 1, 2, 0, 5, 3, 6, 7],
-    'co': [2, 0, 0, 1, 1, 2, 0, 0],
-    'ep': [0, 1, 2, 3, 8, 5, 6, 11, 7, 9, 10, 4],
-    'eo': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  };
-  moveObject[D * 3] = {
-    'cp': [0, 1, 2, 3, 7, 4, 5, 6],
-    'co': [0, 0, 0, 0, 0, 0, 0, 0],
-    'ep': [0, 1, 7, 6, 4, 5, 2, 3, 8, 9, 10, 11],
-    'eo': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  };
-  moveObject[B * 3] = {
-    'cp': [0, 1, 3, 5, 4, 6, 2, 7],
-    'co': [0, 0, 1, 2, 0, 1, 2, 0],
-    'ep': [0, 11, 10, 3, 4, 5, 6, 7, 8, 9, 1, 2],
-    'eo': [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1]
-  };
-  moveObject[L * 3] = {
-    'cp': [0, 2, 6, 3, 4, 5, 7, 1],
-    'co': [0, 1, 2, 0, 0, 0, 1, 2],
-    'ep': [0, 1, 2, 3, 4, 10, 9, 7, 8, 5, 6, 11],
-    'eo': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  };
+  moveObject[U * 3] = new ArrayCube(
+    [3, 0, 1, 2, 4, 5, 6, 7],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [4, 5, 2, 3, 1, 0, 6, 7, 8, 9, 10, 11],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  )
+  moveObject[F * 3] = new ArrayCube(
+    [1, 7, 2, 3, 0, 5, 6, 4],
+    [1, 2, 0, 0, 2, 0, 0, 1],
+    [9, 1, 2, 8, 4, 5, 6, 7, 0, 3, 10, 11],
+    [1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0]
+  );
+  moveObject[R * 3] = new ArrayCube(
+    [4, 1, 2, 0, 5, 3, 6, 7],
+    [2, 0, 0, 1, 1, 2, 0, 0],
+    [0, 1, 2, 3, 8, 5, 6, 11, 7, 9, 10, 4],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  );
+  moveObject[D * 3] = new ArrayCube(
+    [0, 1, 2, 3, 7, 4, 5, 6],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 7, 6, 4, 5, 2, 3, 8, 9, 10, 11],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  );
+  moveObject[B * 3] = new ArrayCube(
+    [0, 1, 3, 5, 4, 6, 2, 7],
+    [0, 0, 1, 2, 0, 1, 2, 0],
+    [0, 11, 10, 3, 4, 5, 6, 7, 8, 9, 1, 2],
+    [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+  );
+  moveObject[L * 3] = new ArrayCube(
+    [0, 2, 6, 3, 4, 5, 7, 1],
+    [0, 1, 2, 0, 0, 0, 1, 2],
+    [0, 1, 2, 3, 4, 10, 9, 7, 8, 5, 6, 11],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  );
   for (let i = 0; i < 6; i++) {
-    moveObject[i * 3 + 1] = {};
-    $multiply(moveObject[i * 3], moveObject[i * 3], moveObject[i * 3 + 1]);
-    moveObject[i * 3 + 2] = {};
-    $multiply(moveObject[i * 3 + 1], moveObject[i * 3], moveObject[i * 3 + 2]);
+    moveObject[i * 3 + 1] = moveObject[i * 3].apply(moveObject[i * 3])
+    moveObject[i * 3 + 2] = moveObject[i * 3 + 1].apply(moveObject[i * 3])
   }
 
   restrictedMove = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
-}
-
-const $init = (obj) => {
-  obj.cp = [0, 1, 2, 3, 4, 5, 6, 7];
-  obj.co = [0, 0, 0, 0, 0, 0, 0, 0];
-  obj.ep = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  obj.eo = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-}
-
-const $apply = (obj, mv) => {
-  const newCp = obj.cp.map((cur, idx) => obj.cp[mv.cp[idx]]);
-  const newCo = obj.co.map((cur, idx) => (obj.co[mv.cp[idx]] + mv.co[idx]) % 3);
-  const newEp = obj.ep.map((cur, idx) => obj.ep[mv.ep[idx]]);
-  const newEo = obj.eo.map((cur, idx) => (obj.eo[mv.ep[idx]] + mv.eo[idx]) % 2);
-  obj.cp = newCp;
-  obj.co = newCo;
-  obj.ep = newEp;
-  obj.eo = newEo;
-}
-
-const $multiply = (obj, mv, ret) => {
-  const newCp = obj.cp.map((cur, idx) => obj.cp[mv.cp[idx]]);
-  const newCo = obj.co.map((cur, idx) => (obj.co[mv.cp[idx]] + mv.co[idx]) % 3);
-  const newEp = obj.ep.map((cur, idx) => obj.ep[mv.ep[idx]]);
-  const newEo = obj.eo.map((cur, idx) => (obj.eo[mv.ep[idx]] + mv.eo[idx]) % 2);
-  ret.cp = newCp;
-  ret.co = newCo;
-  ret.ep = newEp;
-  ret.eo = newEo;
-}
-
-const $copy = (obj, ret) => {
-  ret.cp = obj.cp.slice();
-  ret.co = obj.co.slice();
-  ret.ep = obj.ep.slice();
-  ret.eo = obj.eo.slice();
 }
 
 const bitCount = (bits) =>{
@@ -840,7 +765,6 @@ class Stack {
 
 const initialize = () => {
   if (!initialized) {
-    console.log('Initializing...')
     initUtil();
     initTable();
     initPrun();
@@ -848,55 +772,18 @@ const initialize = () => {
   }
 }
 
-const solve = (scramble) => {
+const solve = (scramble, max = 22) => {
   console.log('scramble: ' + scramble);
   let arr = scramble.split(' ');
-  let obj = {}
-  $init(obj);
+  let obj = new ArrayCube()
   let _solution;
   let solution = '';
 
   for (let i = 0; i < arr.length; i++) {
-    if (moveName.indexOf(arr[i]) >= 0) $apply(obj, moveObject[moveName.indexOf(arr[i])]);
+    if (moveName.indexOf(arr[i]) >= 0) obj = obj.apply(moveObject[moveName.indexOf(arr[i])])
   }
 
-  _solution = search(obj);
-  _solution = cancelMoves(_solution);
-  _solution.forEach((val) => {
-    solution += moveName[val] + ' '
-  })
-  console.log('solution: ' + solution);
-  return solution;
-}
-
-const getScramble = (seed) => {
-  let scr, solution, ret;
-
-  scr = getRandomState(seed);
-  solution = search(scr);
-  solution = cancelMoves(solution);
-  solution.reverse();
-  ret = '';
-  solution.forEach((val) => {
-    ret += moveName[val] + ' '
-  })
-  console.log(ret)
-  return ret;
-}
-
-const _solve = (scramble, max = 22) => {
-  console.log('scramble: ' + scramble);
-  let arr = scramble.split(' ');
-  let obj = {}
-  $init(obj);
-  let _solution;
-  let solution = '';
-
-  for (let i = 0; i < arr.length; i++) {
-    if (moveName.indexOf(arr[i]) >= 0) $apply(obj, moveObject[moveName.indexOf(arr[i])]);
-  }
-
-  _solution = _search(obj, max);
+  _solution = search(obj, max);
   if (_solution == null) {
     return 'Error';
   }
@@ -905,14 +792,15 @@ const _solve = (scramble, max = 22) => {
     solution += moveName[val] + ' '
   })
   console.log('solution: ' + solution);
+  console.log(_solution.length + ' moves');
   return solution;
 }
 
-const _getScramble = (seed, max = 22) => {
+const getScramble = (seed, max = 22) => {
   let scr, solution, ret;
 
   scr = getRandomState(seed);
-  solution = _search(scr, max);
+  solution = search(scr, max);
   if (solution == null) {
     return 'Error';
   }
@@ -922,16 +810,14 @@ const _getScramble = (seed, max = 22) => {
   solution.forEach((val) => {
     ret += moveName[val] + ' '
   })
-  console.log(ret)
+  console.log(ret + '[' + solution.length + ' moves]')
   return ret;
 }
 
 return {
   initialize: initialize,
-  solveFast: solve,
-  getScrambleFast: getScramble,
-  solve: _solve,
-  getScramble: _getScramble,
+  solve: solve,
+  getScramble: getScramble,
 }
 
 })();
